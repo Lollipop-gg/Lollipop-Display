@@ -151,51 +151,67 @@ var lollipop = {
 
     const token = String(this.currentToken || '').toLowerCase();
 
+    // In the builder preview (dir === 'tmp'), no draft yet is a normal state --
+    // it just means the visitor hasn't edited anything since the last publish,
+    // or the seed-to-tmp save hasn't landed yet. Fall back to the published
+    // config so the iframe still renders instead of treating a 404 as fatal.
+    // (Previously this fell straight to window.location.reload(), which — since
+    // a fresh/unedited link has no /tmp/<slug>.json — reloaded forever and the
+    // preview never rendered.)
+    var urls = [`${lollipop.baseurl}/${dir}/${token}.json?ver=${Date.now()}`];
+    if (dir === 'tmp') {
+      urls.push(`${lollipop.baseurl}/configs/${token}.json?ver=${Date.now()}`);
+    }
 
-    lollipop.config = await fetch(`${lollipop.baseurl}/${dir}/${token}.json?ver=${Date.now()}`, opts)
-      .then((res) => res.json())
-      .then((res) => {
-        try{
-          $('.command').html('<span class="spin">👾</span> Found lollipop! Grabbing Data...');
-          $('.sunburst > img').attr('src', res.image_url);
-          $('.sunburst').removeClass('blueberry').addClass('vanilla');
-          window.col = res;
+    var lastErr = null;
+    var result = null;
 
-          this.build_config(res);
-          this.displayLink(res);
-          $('#wrapper').removeClass('invisible');
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, opts).then((r) => r.json());
 
-          lollipop.analyticsTrackProfileView(res);
+        $('.command').html('<span class="spin">👾</span> Found lollipop! Grabbing Data...');
+        $('.sunburst > img').attr('src', res.image_url);
+        $('.sunburst').removeClass('blueberry').addClass('vanilla');
+        window.col = res;
 
-          return res;
-        }catch{
-          throw "Config File not found.";
-        }
-      })
-      .catch((e) => {
-        if (lollipop.currentToken != '' && window == window.parent) {
-          window.location.href = lollipop.baseurl+"/build.html?t="+ lollipop.currentToken;
+        this.build_config(res);
+        this.displayLink(res);
+        $('#wrapper').removeClass('invisible');
 
-        }else if( window !== window.parent && this.iframe == true) {
-          window.location.reload();
-        }else{
-          $('.command').html('<span class="spin"></span> Create your Web3 Identity, curate your Digital Collectibles and engage with your audience! <br><br>All from one link in the bio.<br><br>\
-          <div class="">\
-          <div class="relative mb-6">\
-            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-base">\
-              https://lollipop.gg/\
-            </div>\
-            <input type="text" required id="claimlink" class="ml-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full pl-[8.2rem] p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500 text-lg" placeholder="username">\
+        lollipop.analyticsTrackProfileView(res);
+
+        result = res;
+        break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+
+    lollipop.config = result;
+
+    if (result === null) {
+      if (lollipop.currentToken != '' && window == window.parent) {
+        window.location.href = lollipop.baseurl+"/build.html?t="+ lollipop.currentToken;
+      }else{
+        $('.command').html('<span class="spin"></span> Create your Web3 Identity, curate your Digital Collectibles and engage with your audience! <br><br>All from one link in the bio.<br><br>\
+        <div class="">\
+        <div class="relative mb-6">\
+          <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-base">\
+            https://lollipop.gg/\
           </div>\
-          <p class="text-sm text-gray-600 lg:hidden mb-4">We recommend loading this in Phantom or Metamask Browser if you are on mobile.</p>\
-          <a class="btn button mt-1 bg-green-300 md:text-lg text-lg p-2 rounded-lg shadow shadow-md" href="#claim" onClick="return claim();">Claim Link</a></div>');
-          $('.sunburst').removeClass('blueberry').addClass('vanilla');
-        }
+          <input type="text" required id="claimlink" class="ml-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full pl-[8.2rem] p-2.5  dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500 text-lg" placeholder="username">\
+        </div>\
+        <p class="text-sm text-gray-600 lg:hidden mb-4">We recommend loading this in Phantom or Metamask Browser if you are on mobile.</p>\
+        <a class="btn button mt-1 bg-green-300 md:text-lg text-lg p-2 rounded-lg shadow shadow-md" href="#claim" onClick="return claim();">Claim Link</a></div>');
+        $('.sunburst').removeClass('blueberry').addClass('vanilla');
+      }
 
-        console.error(e);
-        console.error('Could not find the IPFS config');
-        return null;
-      });
+      console.error(lastErr);
+      console.error('Could not find the IPFS config');
+    }
+
+    return result;
   },
 
   build_config: function(config){
