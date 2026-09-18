@@ -1595,6 +1595,23 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 28px;
 }
 
+/* App Store + Google Play stack on phones and sit side by side once the card
+   is at its full 448px width. Each button needs ~176px, so two columns don't
+   fit in a phone-width card (302px at 390px) without the labels wrapping.
+   (frontend/validate.html gets away with 2 columns at phone width because it
+   renders at initial-scale=.8, i.e. a ~488px-wide layout viewport.) */
+.mixtape-install-stores {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 480px) {
+  .mixtape-install-stores {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .mixtape-install-store-button {
   display: flex;
   align-items: center;
@@ -1635,6 +1652,14 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 19px;
   font-weight: 900;
   letter-spacing: -.03em;
+}
+
+.mixtape-install-store-button.play .mixtape-install-store-button-eyebrow {
+  text-transform: uppercase;
+}
+
+.mixtape-install-store-button.play .mixtape-install-store-button-name {
+  font-size: 18px;
 }
 
 .mixtape-install-button {

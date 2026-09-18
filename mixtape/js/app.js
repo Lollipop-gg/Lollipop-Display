@@ -4,6 +4,7 @@
   const MIXTAPE_ROUTE_PREFIX = "/mixtape/";
   const ASSET_BASE = ensureTrailingSlash(window.MIXTAPE_ASSET_BASE || "/mixtape/");
   const APP_STORE_URL = window.LOLLIPOP_APP_STORE_URL || "https://apps.apple.com/us/app/lollipop-tap/id6781783073";
+  const PLAY_STORE_URL = window.LOLLIPOP_ANDROID_STORE_URL || "https://play.google.com/store/apps/details?id=gg.lollipop.android";
   const MIXTAPE_CLAIM_BAR_KEY = "lollipop_mixtape_claim_bar";
   const MIXTAPE_CLAIM_BAR_MAX_AGE_MS = 30 * 1000;
   const MIXTAPE_CLAIM_BAR_REAPPEAR_MS = 120 * 1000;
@@ -980,18 +981,43 @@
     const actions = document.createElement("div");
     actions.className = "mixtape-install-actions";
 
-    const storeLink = document.createElement("a");
-    storeLink.className = "mixtape-install-store-button";
-    storeLink.href = APP_STORE_URL;
-    storeLink.target = "_blank";
-    storeLink.rel = "noopener";
-    storeLink.setAttribute("aria-label", "Download on the App Store");
-    storeLink.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.04 12.53c-.02-2.15 1.76-3.18 1.84-3.23-1.01-1.47-2.58-1.67-3.13-1.69-1.33-.14-2.6.78-3.28.78-.68 0-1.73-.76-2.84-.74-1.46.02-2.81.85-3.56 2.16-1.52 2.64-.39 6.55 1.09 8.69.72 1.04 1.58 2.22 2.71 2.17 1.09-.04 1.5-.7 2.82-.7 1.31 0 1.69.7 2.84.68 1.17-.02 1.92-1.06 2.64-2.11.83-1.21 1.17-2.38 1.19-2.44-.03-.01-2.29-.88-2.31-3.57ZM14.88 6.2c.6-.73 1.01-1.74.9-2.75-.87.03-1.93.58-2.56 1.31-.56.65-1.05 1.68-.92 2.67.97.08 1.97-.5 2.58-1.23Z"/></svg>' +
-      '<span class="mixtape-install-store-button-copy">' +
-        '<span class="mixtape-install-store-button-eyebrow">Download on the</span>' +
-        '<span class="mixtape-install-store-button-name">App Store</span>' +
-      '</span>';
+    const createStoreButton = ({ href, className = "", label, eyebrow, name, iconSvg }) => {
+      const link = document.createElement("a");
+      link.className = `mixtape-install-store-button ${className}`.trim();
+      link.href = href;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.setAttribute("aria-label", label);
+      link.innerHTML =
+        iconSvg +
+        '<span class="mixtape-install-store-button-copy">' +
+          `<span class="mixtape-install-store-button-eyebrow">${eyebrow}</span>` +
+          `<span class="mixtape-install-store-button-name">${name}</span>` +
+        '</span>';
+      return link;
+    };
+
+    const storeLink = createStoreButton({
+      href: APP_STORE_URL,
+      label: "Download on the App Store",
+      eyebrow: "Download on the",
+      name: "App Store",
+      iconSvg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.04 12.53c-.02-2.15 1.76-3.18 1.84-3.23-1.01-1.47-2.58-1.67-3.13-1.69-1.33-.14-2.6.78-3.28.78-.68 0-1.73-.76-2.84-.74-1.46.02-2.81.85-3.56 2.16-1.52 2.64-.39 6.55 1.09 8.69.72 1.04 1.58 2.22 2.71 2.17 1.09-.04 1.5-.7 2.82-.7 1.31 0 1.69.7 2.84.68 1.17-.02 1.92-1.06 2.64-2.11.83-1.21 1.17-2.38 1.19-2.44-.03-.01-2.29-.88-2.31-3.57ZM14.88 6.2c.6-.73 1.01-1.74.9-2.75-.87.03-1.93.58-2.56 1.31-.56.65-1.05 1.68-.92 2.67.97.08 1.97-.5 2.58-1.23Z"/></svg>'
+    });
+
+    // Same Google Play mark as frontend/validate.html's #claim-android-store-link.
+    const playLink = createStoreButton({
+      href: PLAY_STORE_URL,
+      className: "play",
+      label: "Get it on Google Play",
+      eyebrow: "Get it on",
+      name: "Google Play",
+      iconSvg: '<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="#00F076" d="M4.8 3.5c-.5.3-.8.9-.8 1.6v21.8c0 .7.3 1.3.8 1.6L17.5 16 4.8 3.5Z"/><path fill="#00D6FF" d="m17.5 16 3.9-3.9L6.2 3.3c-.5-.3-1-.3-1.4.2L17.5 16Z"/><path fill="#FFD400" d="m17.5 16-12.7 12.5c.4.5.9.5 1.4.2l15.2-8.8L17.5 16Z"/><path fill="#FF3D55" d="m21.4 12.1-3.9 3.9 3.9 3.9 5.6-3.2c1.3-.8 1.3-1.9 0-2.6l-5.6-3.2Z"/></svg>'
+    });
+
+    const storeRow = document.createElement("div");
+    storeRow.className = "mixtape-install-stores";
+    storeRow.append(storeLink, playLink);
 
     // In a likely in-app browser, the deep link is known to silently fail
     // (openMixtapeClaimBar skips straight here without even trying it), so
@@ -1013,10 +1039,10 @@
     const tapAgainButton = document.createElement("button");
     tapAgainButton.type = "button";
     tapAgainButton.className = "mixtape-install-button secondary";
-    tapAgainButton.textContent = "I’ll tap again";
+    tapAgainButton.textContent = "Close";
     tapAgainButton.addEventListener("click", hideMixtapeInstallOverlay);
 
-    actions.append(storeLink, ...(openButton ? [openButton] : []), tapAgainButton);
+    actions.append(storeRow, ...(openButton ? [openButton] : []), tapAgainButton);
     card.append(kickerRow, title, body, note, actions);
     overlay.append(backdrop, glow, card);
     els.app.appendChild(overlay);
